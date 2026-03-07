@@ -16,3 +16,7 @@ yarn-error.log*
 # system
 .DS_Store
 Thumbs.db
+
+.claude/
+
+frontend_doc/
