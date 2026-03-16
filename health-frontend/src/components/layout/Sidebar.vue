@@ -33,6 +33,12 @@
       <p>No consultations yet.</p>
     </div>
 
+    <!-- Admin entry — only visible to ADMIN -->
+    <div v-if="authStore.isAdmin" class="sidebar__admin-entry" @click="router.push('/admin')">
+      <el-icon><Setting /></el-icon>
+      <span>管理后台</span>
+    </div>
+
     <!-- New Consultation Dialog -->
     <el-dialog
       v-model="showNewDialog"
@@ -71,11 +77,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConsultationStore } from '@/stores/consultation'
-import { Plus } from '@element-plus/icons-vue'
+import { useAuthStore } from '@/stores/auth'
+import { Plus, Setting } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const consultationStore = useConsultationStore()
+const authStore = useAuthStore()
 
 const showNewDialog = ref(false)
 const chiefComplaint = ref('')
@@ -208,5 +216,25 @@ function formatDate(dateStr) {
   justify-content: center;
   color: var(--color-text-secondary);
   font-size: 13px;
+}
+
+.sidebar__admin-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-border);
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar__admin-entry:hover {
+  background: var(--color-surface);
+  color: var(--color-primary);
 }
 </style>

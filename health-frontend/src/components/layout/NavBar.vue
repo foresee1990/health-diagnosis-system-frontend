@@ -10,18 +10,22 @@
 
     <div class="navbar__right">
       <el-dropdown trigger="click" @command="handleCommand">
-        <div class="navbar__avatar">
+        <div class="navbar__user">
           <el-avatar :size="36" :style="{ background: '#2F80ED', cursor: 'pointer' }">
             {{ avatarLetter }}
           </el-avatar>
+          <span class="navbar__username">{{ username }}</span>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="profile" :icon="User">
-              {{ username }}
+              个人中心
+            </el-dropdown-item>
+            <el-dropdown-item v-if="authStore.isAdmin" command="admin" :icon="Setting">
+              管理后台
             </el-dropdown-item>
             <el-dropdown-item command="logout" :icon="SwitchButton" divided>
-              Logout
+              退出登录
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -34,7 +38,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { User, SwitchButton } from '@element-plus/icons-vue'
+import { User, SwitchButton, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -46,6 +50,10 @@ function handleCommand(cmd) {
   if (cmd === 'logout') {
     authStore.logout()
     router.push('/login')
+  } else if (cmd === 'profile') {
+    router.push('/profile')
+  } else if (cmd === 'admin') {
+    router.push('/admin')
   }
 }
 </script>
@@ -90,8 +98,16 @@ function handleCommand(cmd) {
   align-items: center;
 }
 
-.navbar__avatar {
+.navbar__user {
   display: flex;
   align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.navbar__username {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
 }
 </style>

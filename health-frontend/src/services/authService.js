@@ -11,3 +11,11 @@ export function login(username, password) {
 export function getUserInfo() {
   return http.get('/users/me')
 }
+
+export function updatePassword(oldPassword, newPassword) {
+  return http.put('/users/me/password', { oldPassword, newPassword })
+}
+
+export function updateProfile(email) {
+  return http.put('/users/me/profile', { email })
+}
