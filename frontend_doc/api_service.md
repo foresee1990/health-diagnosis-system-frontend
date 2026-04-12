@@ -59,15 +59,72 @@ export function register(username, password, email) {
 }
 
 // 用户登录
-// 返回: Promise<{ code, message, data: { token, userId, username } }>
+// 返回: Promise<{ code, message, data: { token, userId, username, role } }>
 export function login(username, password) {
   return http.post('/auth/login', { username, password })
 }
 
 // 获取当前用户信息
-// 返回: Promise<{ code, message, data: { userId, username, email, createdAt } }>
+// 返回: Promise<{ code, message, data: { userId, username, email, role, createdAt } }>
 export function getUserInfo() {
   return http.get('/users/me')
+}
+
+// 修改密码
+// 返回: Promise<{ code, message, data: null }>
+export function updatePassword(oldPassword, newPassword) {
+  return http.put('/users/me/password', { oldPassword, newPassword })
+}
+
+// 更新个人信息（邮箱）
+// 返回: Promise<{ code, message, data: { userId, username, email, createdAt } }>
+export function updateProfile(email) {
+  return http.put('/users/me/profile', { email })
+}
+```
+
+---
+
+## 六、adminService.js
+
+```js
+// src/services/adminService.js — 方法签名示意
+import http from './http'
+
+// 获取用户列表（脱敏）
+// 返回: Promise<{ code, message, data: { total, page, size, pages, users[] } }>
+export function getAdminUsers(params = {}) {
+  return http.get('/admin/users', { params })
+}
+
+// 禁用用户
+// 返回: Promise<{ code, message, data: null }>
+export function banUser(userId) {
+  return http.patch(`/admin/users/${userId}/ban`)
+}
+
+// 启用用户
+// 返回: Promise<{ code, message, data: null }>
+export function unbanUser(userId) {
+  return http.patch(`/admin/users/${userId}/unban`)
+}
+
+// 重置用户密码（返回临时密码）
+// 返回: Promise<{ code, message, data: { newPassword } }>
+export function resetUserPassword(userId) {
+  return http.post(`/admin/users/${userId}/password/reset`)
+}
+
+// 查看用户会话元数据（严禁含 messages 内容）
+// 返回: Promise<{ code, message, data: ConsultationMeta[] }>
+export function getUserConsultations(userId) {
+  return http.get(`/admin/users/${userId}/consultations`)
+}
+
+// 获取系统操作日志
+// 返回: Promise<{ code, message, data: { total, page, size, pages, logs[] } }>
+export function getAdminLogs(params = {}) {
+  return http.get('/admin/logs', { params })
 }
 ```
 
