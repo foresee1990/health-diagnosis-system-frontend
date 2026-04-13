@@ -19,3 +19,11 @@ export function updatePassword(oldPassword, newPassword) {
 export function updateProfile(email) {
   return http.put('/users/me/profile', { email })
 }
+
+export function getHealthProfile() {
+  return http.get('/users/me/health-profile')
+}
+
+export function updateHealthProfile(data) {
+  return http.put('/users/me/health-profile', data)
+}

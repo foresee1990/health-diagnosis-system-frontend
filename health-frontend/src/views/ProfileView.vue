@@ -54,6 +54,70 @@
         </el-form>
       </el-card>
 
+      <!-- Health Profile Card -->
+      <el-card class="profile-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">健康档案</span>
+            <el-tag v-if="healthProfile.filled" type="success" size="small">已填写</el-tag>
+            <el-tag v-else type="info" size="small">未填写</el-tag>
+          </div>
+        </template>
+        <el-form
+          ref="healthFormRef"
+          :model="healthForm"
+          :rules="healthRules"
+          label-width="100px"
+          @submit.prevent="submitHealth"
+        >
+          <el-form-item label="年龄" prop="age">
+            <el-input-number v-model="healthForm.age" :min="1" :max="150" placeholder="请输入年龄" style="width: 160px" />
+          </el-form-item>
+          <el-form-item label="性别" prop="gender">
+            <el-radio-group v-model="healthForm.gender">
+              <el-radio value="MALE">男</el-radio>
+              <el-radio value="FEMALE">女</el-radio>
+              <el-radio value="OTHER">其他</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="过敏史" prop="allergies">
+            <el-input
+              v-model="healthForm.allergies"
+              type="textarea"
+              :rows="2"
+              placeholder="如：青霉素、花粉（无则留空）"
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+          <el-form-item label="基础疾病" prop="chronicDiseases">
+            <el-input
+              v-model="healthForm.chronicDiseases"
+              type="textarea"
+              :rows="2"
+              placeholder="如：高血压、2型糖尿病（无则留空）"
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+          <el-form-item label="当前用药" prop="currentMedications">
+            <el-input
+              v-model="healthForm.currentMedications"
+              type="textarea"
+              :rows="2"
+              placeholder="如：氨氯地平5mg（无则留空）"
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" :loading="healthLoading" @click="submitHealth">
+              保存健康档案
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+
       <!-- Change Password Card -->
       <el-card class="profile-card" shadow="never">
         <template #header>
@@ -90,7 +154,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { getUserInfo, updatePassword, updateProfile } from '@/services/authService'
+import { getUserInfo, updatePassword, updateProfile, getHealthProfile, updateHealthProfile } from '@/services/authService'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 
@@ -107,7 +171,62 @@ onMounted(async () => {
   } catch {
     // ignore
   }
+  try {
+    const res = await getHealthProfile()
+    const d = res.data
+    healthProfile.value = d
+    if (d.filled) {
+      healthForm.value = {
+        age: d.age ?? null,
+        gender: d.gender ?? '',
+        allergies: d.allergies ?? '',
+        chronicDiseases: d.chronicDiseases ?? '',
+        currentMedications: d.currentMedications ?? ''
+      }
+    }
+  } catch {
+    // ignore
+  }
 })
+
+// --- Health profile ---
+const healthProfile = ref({ filled: false })
+const healthFormRef = ref(null)
+const healthLoading = ref(false)
+const healthForm = ref({
+  age: null,
+  gender: '',
+  allergies: '',
+  chronicDiseases: '',
+  currentMedications: ''
+})
+const healthRules = {
+  age: [{ type: 'number', min: 1, max: 150, message: '年龄需在 1~150 之间', trigger: 'blur' }]
+}
+
+async function submitHealth() {
+  try {
+    await healthFormRef.value.validate()
+  } catch {
+    return
+  }
+  healthLoading.value = true
+  try {
+    const payload = {}
+    if (healthForm.value.age) payload.age = healthForm.value.age
+    if (healthForm.value.gender) payload.gender = healthForm.value.gender
+    if (healthForm.value.allergies) payload.allergies = healthForm.value.allergies
+    if (healthForm.value.chronicDiseases) payload.chronicDiseases = healthForm.value.chronicDiseases
+    if (healthForm.value.currentMedications) payload.currentMedications = healthForm.value.currentMedications
+    const res = await updateHealthProfile(payload)
+    healthProfile.value = res.data
+    ElMessage.success('健康档案已保存')
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || '保存失败')
+  } finally {
+    healthLoading.value = false
+  }
+}
 
 // --- Profile form ---
 const profileFormRef = ref(null)
@@ -252,5 +371,11 @@ async function submitPassword() {
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text, #1a1a1a);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

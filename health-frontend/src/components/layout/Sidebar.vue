@@ -5,7 +5,7 @@
         type="primary"
         class="sidebar__new-btn"
         :icon="Plus"
-        @click="showNewDialog = true"
+        @click="handleNewConsultation"
       >
         New Consultation
       </el-button>
@@ -79,7 +79,8 @@ import { useRouter } from 'vue-router'
 import { useConsultationStore } from '@/stores/consultation'
 import { useAuthStore } from '@/stores/auth'
 import { Plus, Setting } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getHealthProfile } from '@/services/authService'
 
 const router = useRouter()
 const consultationStore = useConsultationStore()
@@ -88,6 +89,30 @@ const authStore = useAuthStore()
 const showNewDialog = ref(false)
 const chiefComplaint = ref('')
 const creating = ref(false)
+
+async function handleNewConsultation() {
+  try {
+    const res = await getHealthProfile()
+    if (!res.data?.filled) {
+      await ElMessageBox.confirm(
+        '填写健康档案后，AI 可以提供更个性化的问诊建议。是否现在前往填写？',
+        '完善健康档案',
+        {
+          confirmButtonText: '去填写',
+          cancelButtonText: '跳过',
+          type: 'info',
+          distinguishCancelAndClose: true
+        }
+      )
+      router.push('/profile')
+      return
+    }
+  } catch (action) {
+    // "跳过" (cancel) or error — proceed to open dialog
+    if (action === 'close') return
+  }
+  showNewDialog.value = true
+}
 
 async function createNew() {
   if (!chiefComplaint.value.trim()) return
