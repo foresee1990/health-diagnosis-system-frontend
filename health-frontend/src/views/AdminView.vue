@@ -43,7 +43,7 @@
             <el-table-column prop="createdAt" label="注册时间" min-width="150">
               <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="230" fixed="right">
+            <el-table-column label="操作" width="290" fixed="right">
               <template #default="{ row }">
                 <el-button
                   v-if="row.status === 'ACTIVE'"
@@ -68,6 +68,15 @@
                 </el-button>
                 <el-button type="primary" size="small" plain @click="handleViewConsultations(row)">
                   会话
+                </el-button>
+                <el-button
+                  v-if="row.role !== 'ADMIN'"
+                  type="info"
+                  size="small"
+                  plain
+                  @click="handleAssignRole(row)"
+                >
+                  分配角色
                 </el-button>
               </template>
             </el-table-column>
@@ -134,6 +143,19 @@
       </el-table>
     </el-dialog>
 
+    <!-- Assign Role Dialog -->
+    <el-dialog v-model="assignRoleDialogVisible" title="分配角色" width="360px" :close-on-click-modal="false">
+      <p style="margin: 0 0 12px">用户：<strong>{{ selectedUser?.username }}</strong></p>
+      <el-select v-model="assignRoleValue" style="width: 100%">
+        <el-option label="普通用户 (USER)" value="USER" />
+        <el-option label="知识工程师 (KNOWLEDGE_ENGINEER)" value="KNOWLEDGE_ENGINEER" />
+      </el-select>
+      <template #footer>
+        <el-button @click="assignRoleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="assignRoleLoading" @click="confirmAssignRole">确认</el-button>
+      </template>
+    </el-dialog>
+
     <!-- Reset Password Result Dialog -->
     <el-dialog v-model="resetPasswordDialogVisible" title="密码重置成功" width="360px" :close-on-click-modal="false">
       <p style="margin: 0 0 8px">用户 <strong>{{ selectedUser?.username }}</strong> 的临时密码：</p>
@@ -160,7 +182,8 @@ import {
   unbanUser,
   resetUserPassword,
   getUserConsultations,
-  getAdminLogs
+  getAdminLogs,
+  assignRole
 } from '@/services/adminService'
 import RiskBadge from '@/components/common/RiskBadge.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -257,6 +280,31 @@ async function handleViewConsultations(row) {
     ElMessage.error('获取会话记录失败')
   } finally {
     consultationsLoading.value = false
+  }
+}
+
+// --- Assign Role ---
+const assignRoleDialogVisible = ref(false)
+const assignRoleValue = ref('USER')
+const assignRoleLoading = ref(false)
+
+function handleAssignRole(row) {
+  selectedUser.value = row
+  assignRoleValue.value = row.role
+  assignRoleDialogVisible.value = true
+}
+
+async function confirmAssignRole() {
+  assignRoleLoading.value = true
+  try {
+    await assignRole(selectedUser.value.userId, assignRoleValue.value)
+    ElMessage.success('角色已更新')
+    assignRoleDialogVisible.value = false
+    loadUsers()
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || '操作失败')
+  } finally {
+    assignRoleLoading.value = false
   }
 }
 

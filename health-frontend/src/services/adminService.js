@@ -23,3 +23,7 @@ export function getUserConsultations(userId) {
 export function getAdminLogs(params = {}) {
   return http.get('/admin/logs', { params })
 }
+
+export function assignRole(userId, role) {
+  return http.patch(`/admin/users/${userId}/role`, { role })
+}

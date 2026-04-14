@@ -33,6 +33,12 @@
       <p>No consultations yet.</p>
     </div>
 
+    <!-- Knowledge entry — visible to KNOWLEDGE_ENGINEER and ADMIN -->
+    <div v-if="authStore.canAccessKnowledge" class="sidebar__admin-entry" @click="router.push('/knowledge')">
+      <el-icon><Files /></el-icon>
+      <span>知识库管理</span>
+    </div>
+
     <!-- Admin entry — only visible to ADMIN -->
     <div v-if="authStore.isAdmin" class="sidebar__admin-entry" @click="router.push('/admin')">
       <el-icon><Setting /></el-icon>
@@ -78,7 +84,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConsultationStore } from '@/stores/consultation'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, Setting } from '@element-plus/icons-vue'
+import { Plus, Setting, Files } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getHealthProfile } from '@/services/authService'
 

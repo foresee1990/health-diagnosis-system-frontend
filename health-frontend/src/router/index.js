@@ -25,6 +25,11 @@ const routes = [
     path: '/admin',
     component: () => import('@/views/AdminView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/knowledge',
+    component: () => import('@/views/KnowledgeView.vue'),
+    meta: { requiresAuth: true, requiresKnowledge: true }
   }
 ]
 
@@ -39,6 +44,10 @@ router.beforeEach((to) => {
     return '/login'
   }
   if (to.meta.requiresAdmin && auth.role !== 'ADMIN') {
+    ElMessage.warning('无权访问')
+    return '/chat'
+  }
+  if (to.meta.requiresKnowledge && auth.role !== 'KNOWLEDGE_ENGINEER' && auth.role !== 'ADMIN') {
     ElMessage.warning('无权访问')
     return '/chat'
   }

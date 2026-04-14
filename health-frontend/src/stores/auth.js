@@ -11,6 +11,8 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAdmin: (state) => state.role === 'ADMIN',
+    isKnowledgeEngineer: (state) => state.role === 'KNOWLEDGE_ENGINEER',
+    canAccessKnowledge: (state) => state.role === 'KNOWLEDGE_ENGINEER' || state.role === 'ADMIN',
   },
 
   actions: {
