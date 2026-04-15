@@ -8,7 +8,7 @@
       v-for="(msg, i) in messages"
       :key="i"
       :message="msg"
-      :is-loading="isLastAiMsg(i) && aiTyping && msg.content === ''"
+      :is-loading="isLastAiMsg(i) && aiTyping && msg.content === '' && !msg.thinking"
     />
   </div>
 </template>

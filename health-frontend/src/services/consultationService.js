@@ -17,7 +17,7 @@ export function completeConsultation(consultationId) {
   return http.patch(`/consultations/${consultationId}/status`)
 }
 
-export async function sendMessageStream(consultationId, content, onToken, onDone) {
+export async function sendMessageStream(consultationId, content, onThinkingToken, onAnswerToken, onThinkDone, onDone) {
   const token = useAuthStore().token
 
   const response = await fetch(`/api/consultations/${consultationId}/messages/stream`, {
@@ -46,16 +46,19 @@ export async function sendMessageStream(consultationId, content, onToken, onDone
     buffer = lines.pop()
 
     for (const line of lines) {
-      if (line.startsWith('data:')) {
-        const data = line.slice(5).trim()
-        if (!data) continue
+      if (!line.startsWith('data:')) continue
+      const data = line.slice(5).trim()
+      if (!data) continue
 
-        if (data.startsWith('{') && data.includes('"type":"done"')) {
-          const parsed = JSON.parse(data)
-          onDone(parsed.riskLevel || null)
-        } else {
-          onToken(data)
-        }
+      try {
+        const parsed = JSON.parse(data)
+        if (parsed.type === 'thinking') onThinkingToken(parsed.token)
+        else if (parsed.type === 'answer') onAnswerToken(parsed.token)
+        else if (parsed.type === 'thinkDone') onThinkDone()
+        else if (parsed.type === 'done') onDone(parsed.riskLevel || null)
+      } catch {
+        // 兜底：按普通 answer token 处理
+        onAnswerToken(data)
       }
     }
   }
