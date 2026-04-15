@@ -3,11 +3,11 @@
     <NavBar />
 
     <div class="kb-layout">
-      <!-- Sidebar -->
+      <!-- 侧边导航 -->
       <aside class="kb-sidebar">
         <div class="kb-sidebar__header">
           <span class="kb-sidebar__logo">⬡</span>
-          <span class="kb-sidebar__title">Knowledge Base</span>
+          <span class="kb-sidebar__title">知识库管理</span>
         </div>
 
         <nav class="kb-nav">
@@ -31,7 +31,7 @@
         </div>
       </aside>
 
-      <!-- Main -->
+      <!-- 主内容区 -->
       <main class="kb-main">
         <component :is="currentComponent" />
       </main>
@@ -52,9 +52,9 @@ const router = useRouter()
 const activePanel = ref('documents')
 
 const navItems = [
-  { key: 'documents', label: 'Documents',   icon: FolderOpened },
-  { key: 'config',    label: 'Chunking',     icon: Setting },
-  { key: 'search',    label: 'Retrieval',    icon: Search },
+  { key: 'documents', label: '医疗资料管理', icon: FolderOpened },
+  { key: 'config',    label: '分块配置',     icon: Setting },
+  { key: 'search',    label: '检索测试',     icon: Search },
 ]
 
 const componentMap = { documents: KnowledgeDocuments, config: KnowledgeConfig, search: KnowledgeSearch }
@@ -77,7 +77,6 @@ const currentComponent = computed(() => componentMap[activePanel.value])
   overflow: hidden;
 }
 
-/* ── Sidebar ── */
 .kb-sidebar {
   width: 200px;
   background: #ffffff;
@@ -95,30 +94,21 @@ const currentComponent = computed(() => componentMap[activePanel.value])
   border-bottom: 1px solid #e5e7eb;
 }
 
-.kb-sidebar__logo {
-  font-size: 16px;
-  color: #6366f1;
-  line-height: 1;
-}
+.kb-sidebar__logo { font-size: 16px; color: #6366f1; line-height: 1; }
 
 .kb-sidebar__title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.04em;
   color: #111827;
-  font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
 }
 
-.kb-nav {
-  flex: 1;
-  padding: 8px 0;
-}
+.kb-nav { flex: 1; padding: 8px 0; }
 
 .kb-nav__item {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 7px 16px;
+  padding: 8px 16px;
   cursor: pointer;
   border-left: 2px solid transparent;
   transition: background 0.12s, border-color 0.12s, color 0.12s;
@@ -128,10 +118,7 @@ const currentComponent = computed(() => componentMap[activePanel.value])
   user-select: none;
 }
 
-.kb-nav__item:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
+.kb-nav__item:hover { background: #f3f4f6; color: #111827; }
 
 .kb-nav__item--active {
   border-left-color: #6366f1;
@@ -140,29 +127,11 @@ const currentComponent = computed(() => componentMap[activePanel.value])
   font-weight: 500;
 }
 
-.kb-nav__icon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
+.kb-nav__icon { font-size: 14px; flex-shrink: 0; }
 
-.kb-nav__label {
-  font-family: inherit;
-}
+.kb-sidebar__footer { border-top: 1px solid #e5e7eb; padding: 8px 0; }
 
-.kb-sidebar__footer {
-  border-top: 1px solid #e5e7eb;
-  padding: 8px 0;
-}
+.kb-nav__item--back { color: #9ca3af; font-size: 12px; }
 
-.kb-nav__item--back {
-  color: #9ca3af;
-  font-size: 12px;
-}
-
-/* ── Main ── */
-.kb-main {
-  flex: 1;
-  overflow-y: auto;
-  background: #f9fafb;
-}
+.kb-main { flex: 1; overflow-y: auto; background: #f9fafb; }
 </style>

@@ -1,26 +1,26 @@
 <template>
   <div class="panel">
     <div class="panel__header">
-      <h1 class="panel__title">Retrieval Test</h1>
-      <p class="panel__desc">向量相似度检索测试，验证知识库召回效果</p>
+      <h1 class="panel__title">检索测试</h1>
+      <p class="panel__desc">向量相似度检索测试，验证知识库召回效果，点击结果查看高亮命中内容</p>
     </div>
 
-    <!-- Query input -->
+    <!-- 查询输入区 -->
     <div class="query-box">
       <el-input
         v-model="query"
         type="textarea"
         :rows="3"
-        placeholder="输入查询语句，例如：高血压的常见症状有哪些？"
+        placeholder="输入查询语句，例如：高血压有哪些常见症状？"
         resize="none"
         class="query-textarea"
         @keydown.ctrl.enter="handleSearch"
       />
 
-      <!-- Params bar -->
+      <!-- 参数栏 -->
       <div class="params-bar">
         <div class="param-item">
-          <span class="param-label mono">top_k</span>
+          <span class="param-label mono">Top-K</span>
           <div class="topk-group">
             <button
               v-for="k in [3, 5, 10]"
@@ -33,7 +33,7 @@
         </div>
 
         <div class="param-item param-item--slider">
-          <span class="param-label mono">similarity_threshold</span>
+          <span class="param-label mono">相似度阈值</span>
           <el-slider
             v-model="similarityThreshold"
             :min="0" :max="1" :step="0.05"
@@ -48,22 +48,19 @@
           :disabled="searching || !query.trim()"
           @click="handleSearch"
         >
-          <span v-if="searching" class="mono">Running...</span>
-          <span v-else>▶ Run</span>
+          {{ searching ? '检索中...' : '▶ 检索' }}
         </button>
       </div>
     </div>
 
-    <!-- Results header -->
+    <!-- 结果统计 -->
     <div v-if="searched" class="results-meta">
       <span class="mono text-muted">
-        {{ results.length }} result{{ results.length !== 1 ? 's' : '' }}
-        · top_k={{ topK }}
-        · threshold={{ (similarityThreshold * 100).toFixed(0) }}%
+        共 {{ results.length }} 条结果 · Top-K={{ topK }} · 阈值={{ (similarityThreshold * 100).toFixed(0) }}%
       </span>
     </div>
 
-    <!-- Results -->
+    <!-- 结果列表 -->
     <div v-loading="searching" class="results">
       <div
         v-for="(item, idx) in results"
@@ -72,12 +69,11 @@
         :class="{ 'result-card--open': expandedIndex === idx }"
         @click="toggleExpand(idx)"
       >
-        <!-- Row header -->
+        <!-- 结果头部 -->
         <div class="result-row">
-          <!-- Index -->
           <span class="result-idx mono">[{{ idx }}]</span>
 
-          <!-- Score bar -->
+          <!-- 相似度分数条 -->
           <div class="score-wrap">
             <div class="score-bar-bg">
               <div
@@ -90,27 +86,30 @@
             </span>
           </div>
 
-          <!-- Source -->
+          <!-- 来源信息 -->
           <div class="result-source">
             <span v-if="item.docName" class="source-file mono">{{ item.docName }}</span>
-            <span v-if="item.chunkIndex !== null" class="source-chunk mono text-muted">·chunk_{{ String(item.chunkIndex).padStart(3,'0') }}</span>
+            <span v-if="item.chunkIndex !== null" class="source-chunk mono text-muted">
+              · chunk_{{ String(item.chunkIndex).padStart(3, '0') }}
+            </span>
             <template v-if="item.tags">
               <span v-for="t in item.tags.split(',')" :key="t" class="tag">{{ t.trim() }}</span>
             </template>
           </div>
 
-          <!-- Expand arrow -->
           <span class="expand-arrow" :class="{ 'expand-arrow--open': expandedIndex === idx }">›</span>
         </div>
 
-        <!-- Content preview (collapsed) -->
-        <div class="result-preview mono">{{ item.content.slice(0, 120) }}{{ item.content.length > 120 ? '…' : '' }}</div>
+        <!-- 折叠预览 -->
+        <div class="result-preview mono">
+          {{ item.content.slice(0, 120) }}{{ item.content.length > 120 ? '…' : '' }}
+        </div>
 
-        <!-- Expanded highlight view -->
+        <!-- 展开：高亮命中全文 -->
         <transition name="slide">
           <div v-if="expandedIndex === idx" class="result-detail" @click.stop>
             <div class="detail-header">
-              <span class="detail-label mono text-muted">// full chunk · {{ item.content.length }} chars</span>
+              <span class="detail-label mono text-muted">命中原文 · {{ item.content.length }} 字符</span>
             </div>
             <pre class="detail-content" v-html="highlight(item.content, query)" />
           </div>
@@ -118,7 +117,7 @@
       </div>
 
       <div v-if="searched && results.length === 0" class="no-results mono text-muted">
-        // no results above threshold. try lowering similarity_threshold or rephrasing the query.
+        // 未找到高于阈值的结果，尝试降低相似度阈值或换一种表述方式
       </div>
     </div>
   </div>
@@ -144,7 +143,11 @@ async function handleSearch() {
   results.value = []
   expandedIndex.value = null
   try {
-    const res = await searchKnowledge({ query: query.value.trim(), topK: topK.value, similarityThreshold: similarityThreshold.value })
+    const res = await searchKnowledge({
+      query: query.value.trim(),
+      topK: topK.value,
+      similarityThreshold: similarityThreshold.value
+    })
     results.value = res.data || []
     searched.value = true
   } catch (err) {
@@ -158,21 +161,59 @@ function toggleExpand(idx) {
   expandedIndex.value = expandedIndex.value === idx ? null : idx
 }
 
+/**
+ * 高亮命中词。
+ * 策略：
+ * 1. 去除标点符号，按空格拆分为词组；
+ * 2. 对于纯中文且长度 > 4 的词，额外提取所有 2-gram 子串作为候选词；
+ * 3. 按词长降序排列，避免短词的 <mark> 嵌套到长词已标注的范围内；
+ * 4. 只保留长度 ≥ 2 的候选词。
+ */
 function highlight(text, queryStr) {
   if (!queryStr || !text) return escapeHtml(text)
-  const escaped = escapeHtml(text)
-  const terms = queryStr.trim().split(/\s+/).filter(Boolean)
-  if (!terms.length) return escaped
+
+  const terms = getHighlightTerms(queryStr)
+  if (terms.length === 0) return escapeHtml(text)
+
+  // 逐词替换，先转义 HTML，再插入 <mark>
+  let escaped = escapeHtml(text)
   const pattern = terms.map(escapeRegex).join('|')
-  return escaped.replace(new RegExp(`(${pattern})`, 'gi'), '<mark>$1</mark>')
+  escaped = escaped.replace(new RegExp(`(${pattern})`, 'g'), '<mark>$1</mark>')
+  return escaped
+}
+
+function getHighlightTerms(queryStr) {
+  // 去除中英文标点，保留汉字、字母、数字
+  const cleaned = queryStr.replace(/[^\u4e00-\u9fffa-zA-Z0-9]/g, ' ')
+  const segments = cleaned.split(/\s+/).filter(s => s.length >= 2)
+
+  const candidates = new Set(segments)
+
+  // 纯中文长词：额外提取 2-gram，增强召回匹配
+  segments.forEach(seg => {
+    if (/^[\u4e00-\u9fff]+$/.test(seg) && seg.length > 3) {
+      for (let i = 0; i < seg.length - 1; i++) {
+        candidates.add(seg.slice(i, i + 2))
+      }
+    }
+  })
+
+  // 按词长降序，避免短词嵌套匹配
+  return [...candidates]
+    .filter(t => t.length >= 2)
+    .sort((a, b) => b.length - a.length)
 }
 
 function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function scoreColor(score) {
@@ -187,16 +228,10 @@ function scoreColor(score) {
 .panel { padding: 28px 32px; max-width: 920px; }
 
 .panel__header { margin-bottom: 20px; }
-.panel__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 2px;
-  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
-}
+.panel__title { font-size: 16px; font-weight: 600; color: #111827; margin: 0 0 2px; }
 .panel__desc { font-size: 12px; color: #6b7280; margin: 0; }
 
-/* Query box */
+/* 查询框 */
 .query-box {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -231,18 +266,11 @@ function scoreColor(score) {
   gap: 8px;
 }
 
-.param-item--slider {
-  flex: 1;
-  min-width: 200px;
-}
+.param-item--slider { flex: 1; min-width: 200px; }
 
-.param-label {
-  font-size: 11px;
-  color: #9ca3af;
-  white-space: nowrap;
-}
+.param-label { font-size: 11px; color: #9ca3af; white-space: nowrap; }
 
-/* Top-K buttons */
+/* Top-K 按钮组 */
 .topk-group { display: flex; }
 
 .topk-btn {
@@ -257,18 +285,15 @@ function scoreColor(score) {
   color: #6b7280;
   transition: all 0.1s;
 }
-
 .topk-btn:first-child { border-radius: 4px 0 0 4px; }
 .topk-btn:last-child  { border-radius: 0 4px 4px 0; }
 .topk-btn + .topk-btn { border-left: none; }
-
 .topk-btn:hover { background: #f3f4f6; color: #111827; }
 .topk-btn--active { background: #6366f1; border-color: #6366f1; color: #fff; }
 
-/* Threshold */
 .threshold-val { font-size: 12px; font-weight: 600; color: #6366f1; min-width: 32px; text-align: right; }
 
-/* Run button */
+/* 检索按钮 */
 .run-btn {
   padding: 5px 14px;
   font-size: 13px;
@@ -284,13 +309,10 @@ function scoreColor(score) {
 .run-btn:hover:not(:disabled) { background: #374151; }
 .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Results meta */
-.results-meta {
-  font-size: 12px;
-  margin-bottom: 10px;
-}
+/* 结果统计 */
+.results-meta { font-size: 12px; margin-bottom: 10px; }
 
-/* Result cards */
+/* 结果卡片 */
 .result-card {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -300,7 +322,6 @@ function scoreColor(score) {
   transition: border-color 0.12s;
   overflow: hidden;
 }
-
 .result-card:hover { border-color: #a5b4fc; }
 .result-card--open { border-color: #6366f1; }
 
@@ -311,19 +332,10 @@ function scoreColor(score) {
   padding: 10px 14px 4px;
 }
 
-.result-idx {
-  font-size: 11px;
-  color: #9ca3af;
-  min-width: 24px;
-}
+.result-idx { font-size: 11px; color: #9ca3af; min-width: 24px; }
 
-/* Score bar */
-.score-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
+/* 分数条 */
+.score-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .score-bar-bg {
   width: 80px;
@@ -333,19 +345,11 @@ function scoreColor(score) {
   overflow: hidden;
 }
 
-.score-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s;
-}
+.score-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
 
-.score-val {
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 52px;
-}
+.score-val { font-size: 12px; font-weight: 600; min-width: 52px; }
 
-/* Source info */
+/* 来源信息 */
 .result-source {
   display: flex;
   align-items: center;
@@ -372,11 +376,10 @@ function scoreColor(score) {
   border: 1px solid #e5e7eb;
   border-radius: 3px;
   color: #6b7280;
-  font-family: inherit;
   white-space: nowrap;
 }
 
-/* Expand arrow */
+/* 展开箭头 */
 .expand-arrow {
   font-size: 18px;
   color: #9ca3af;
@@ -387,7 +390,7 @@ function scoreColor(score) {
 }
 .expand-arrow--open { transform: rotate(90deg); color: #6366f1; }
 
-/* Preview */
+/* 折叠预览 */
 .result-preview {
   font-size: 11px;
   color: #9ca3af;
@@ -398,10 +401,8 @@ function scoreColor(score) {
   text-overflow: ellipsis;
 }
 
-/* Detail */
-.result-detail {
-  border-top: 1px solid #f3f4f6;
-}
+/* 展开详情 */
+.result-detail { border-top: 1px solid #f3f4f6; }
 
 .detail-header {
   padding: 8px 14px 4px;
@@ -425,27 +426,22 @@ function scoreColor(score) {
 
 .detail-content :deep(mark) {
   background: #fef9c3;
-  color: inherit;
+  color: #92400e;
   border-radius: 2px;
   padding: 0 1px;
   font-style: normal;
 }
 
-/* No results */
-.no-results {
-  padding: 32px 0;
-  text-align: left;
-  font-size: 12px;
-}
+/* 无结果 */
+.no-results { padding: 32px 0; font-size: 12px; }
 
-/* Transition */
+/* 动画 */
 .slide-enter-active, .slide-leave-active {
   transition: opacity 0.15s, transform 0.15s;
   transform-origin: top;
 }
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: scaleY(0.97); }
 
-/* Helpers */
 .mono { font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace; }
 .text-muted { color: #9ca3af; }
 </style>

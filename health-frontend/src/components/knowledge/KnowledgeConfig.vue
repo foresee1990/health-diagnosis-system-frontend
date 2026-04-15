@@ -1,21 +1,21 @@
 <template>
   <div class="panel">
     <div class="panel__header">
-      <h1 class="panel__title">Chunking Config</h1>
+      <h1 class="panel__title">分块配置</h1>
       <p class="panel__desc">全局文本分块参数，应用于新上传文档及重新处理操作</p>
     </div>
 
     <div v-loading="configLoading" class="config-body">
-      <!-- Parameters section -->
+      <!-- 参数配置 -->
       <section class="section">
-        <h2 class="section__title">Parameters</h2>
+        <h2 class="section__title">参数设置</h2>
 
         <div class="param-grid">
           <!-- chunk_size -->
           <div class="param-row">
             <div class="param-info">
-              <span class="param-key mono">chunk_size</span>
-              <span class="param-type mono text-muted">integer · chars</span>
+              <span class="param-key mono">chunk_size（分段长度）</span>
+              <span class="param-type mono text-muted">整数 · 字符数</span>
               <p class="param-desc">每个文本块的最大字符数。较小的值提高精确度，较大的值保留更多上下文。建议 300–800。</p>
             </div>
             <div class="param-input">
@@ -24,7 +24,6 @@
                 :min="100"
                 :max="2000"
                 :step="50"
-                :controls="true"
                 size="default"
                 style="width: 140px"
               />
@@ -35,8 +34,8 @@
           <!-- overlap -->
           <div class="param-row">
             <div class="param-info">
-              <span class="param-key mono">overlap</span>
-              <span class="param-type mono text-muted">integer · chars</span>
+              <span class="param-key mono">overlap（重叠长度）</span>
+              <span class="param-type mono text-muted">整数 · 字符数</span>
               <p class="param-desc">相邻块之间的重叠字符数，防止语义在块边界截断。建议为 chunk_size 的 10%~20%。</p>
             </div>
             <div class="param-input">
@@ -45,7 +44,6 @@
                 :min="0"
                 :max="500"
                 :step="10"
-                :controls="true"
                 size="default"
                 style="width: 140px"
               />
@@ -54,47 +52,41 @@
           </div>
         </div>
 
-        <!-- Computed values -->
+        <!-- 计算值 -->
         <div class="computed-block">
           <div class="computed-row">
-            <span class="computed-key mono text-muted"># effective_step</span>
-            <span class="computed-val mono">= chunk_size - overlap = <strong>{{ effectiveStep }}</strong></span>
+            <span class="computed-key mono text-muted"># 有效步长</span>
+            <span class="computed-val mono">= chunk_size - overlap = <strong>{{ effectiveStep }}</strong> 字符</span>
           </div>
           <div class="computed-row">
-            <span class="computed-key mono text-muted"># approx_chunks_per_1k</span>
-            <span class="computed-val mono">≈ <strong>{{ approxChunks }}</strong> chunks per 1000 chars</span>
+            <span class="computed-key mono text-muted"># 每千字符约产生</span>
+            <span class="computed-val mono"><strong>{{ approxChunks }}</strong> 个 chunk</span>
           </div>
         </div>
 
         <div class="action-row">
           <button class="btn btn--primary" :disabled="saving" @click="saveConfig">
-            <span v-if="saving" class="mono">Saving...</span>
-            <span v-else>Save</span>
+            {{ saving ? '保存中...' : '保存配置' }}
           </button>
           <span v-if="lastUpdated" class="saved-at mono text-muted">
-            saved {{ formatDate(lastUpdated) }}
+            上次保存：{{ formatDate(lastUpdated) }}
           </span>
         </div>
       </section>
 
-      <!-- Reprocess section -->
+      <!-- 重新处理 -->
       <section class="section section--danger-zone">
-        <h2 class="section__title">Reprocess</h2>
+        <h2 class="section__title">重新处理</h2>
         <div class="reprocess-row">
           <div class="reprocess-text">
             <p class="reprocess-desc">
               删除所有来源为 <code class="inline-code">pdf_upload</code> 的向量，
-              并以当前配置重新分块、Embedding 所有已索引文档。
+              并以当前配置重新对所有已索引文档进行分块和向量化。
             </p>
             <p class="reprocess-warn">⚠ 操作不可撤销，执行期间请勿关闭页面。</p>
           </div>
-          <button
-            class="btn btn--danger"
-            :disabled="reprocessing"
-            @click="handleReprocess"
-          >
-            <span v-if="reprocessing" class="mono">Running...</span>
-            <span v-else>Reprocess All</span>
+          <button class="btn btn--danger" :disabled="reprocessing" @click="handleReprocess">
+            {{ reprocessing ? '处理中...' : '重新处理全部' }}
           </button>
         </div>
       </section>
@@ -113,7 +105,11 @@ const reprocessing = ref(false)
 const lastUpdated = ref(null)
 const form = ref({ chunkSize: 500, overlap: 50 })
 
-const effectiveStep = computed(() => Math.max(form.value.chunkSize - form.value.overlap, form.value.chunkSize))
+const effectiveStep = computed(() => {
+  const s = form.value.chunkSize - form.value.overlap
+  return s > 0 ? s : form.value.chunkSize
+})
+
 const approxChunks = computed(() => {
   const step = form.value.chunkSize - form.value.overlap
   return step > 0 ? (1000 / step).toFixed(1) : '∞'
@@ -142,14 +138,14 @@ async function saveConfig() {
 
 async function handleReprocess() {
   await ElMessageBox.confirm(
-    '将重新处理所有文档，原向量数据会被替换，确认继续？',
-    'Reprocess All',
-    { type: 'warning', confirmButtonText: 'Confirm', cancelButtonText: 'Cancel' }
+    '将重新处理所有文档，原有向量数据会被替换，确认继续？',
+    '重新处理',
+    { type: 'warning', confirmButtonText: '确认执行', cancelButtonText: '取消' }
   )
   reprocessing.value = true
   try {
     await reprocessAll()
-    ElMessage.success('重新处理完成')
+    ElMessage.success('全部文档重新处理完成')
   } catch (err) { ElMessage.error(err.response?.data?.message || '处理失败') }
   finally { reprocessing.value = false }
 }
@@ -167,16 +163,9 @@ onMounted(loadConfig)
 .panel { padding: 28px 32px; max-width: 800px; }
 
 .panel__header { margin-bottom: 24px; }
-.panel__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 2px;
-  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
-}
+.panel__title { font-size: 16px; font-weight: 600; color: #111827; margin: 0 0 2px; }
 .panel__desc { font-size: 12px; color: #6b7280; margin: 0; }
 
-/* Sections */
 .section {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -196,8 +185,7 @@ onMounted(loadConfig)
   margin: 0 0 16px;
 }
 
-/* Param rows */
-.param-grid { display: flex; flex-direction: column; gap: 0; }
+.param-grid { display: flex; flex-direction: column; }
 
 .param-row {
   display: flex;
@@ -217,7 +205,6 @@ onMounted(loadConfig)
 .param-input { display: flex; align-items: center; gap: 10px; padding-top: 2px; }
 .param-range { font-size: 11px; white-space: nowrap; }
 
-/* Computed block */
 .computed-block {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -229,10 +216,9 @@ onMounted(loadConfig)
   gap: 4px;
 }
 .computed-row { display: flex; gap: 12px; align-items: center; }
-.computed-key { font-size: 11px; min-width: 200px; }
+.computed-key { font-size: 11px; min-width: 180px; }
 .computed-val { font-size: 12px; color: #374151; }
 
-/* Action row */
 .action-row {
   display: flex;
   align-items: center;
@@ -241,7 +227,6 @@ onMounted(loadConfig)
 }
 .saved-at { font-size: 11px; }
 
-/* Reprocess */
 .reprocess-row {
   display: flex;
   align-items: flex-start;
@@ -250,6 +235,7 @@ onMounted(loadConfig)
 }
 .reprocess-desc { font-size: 13px; color: #374151; margin: 0 0 6px; line-height: 1.5; }
 .reprocess-warn { font-size: 12px; color: #b45309; margin: 0; }
+
 .inline-code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
@@ -259,7 +245,6 @@ onMounted(loadConfig)
   color: #6366f1;
 }
 
-/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -280,7 +265,6 @@ onMounted(loadConfig)
 .btn--danger { background: #fff; color: #ef4444; border-color: #fca5a5; }
 .btn--danger:hover:not(:disabled) { background: #fef2f2; border-color: #ef4444; }
 
-/* Mono / text helpers */
 .mono { font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace; }
 .text-muted { color: #9ca3af; }
 </style>
