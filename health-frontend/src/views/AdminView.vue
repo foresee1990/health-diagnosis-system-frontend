@@ -43,8 +43,9 @@
             <el-table-column prop="createdAt" label="注册时间" min-width="150">
               <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="290" fixed="right">
+            <el-table-column label="操作" width="360" fixed="right">
               <template #default="{ row }">
+                <div class="operation-buttons">
                 <el-button
                   v-if="row.status === 'ACTIVE'"
                   type="danger"
@@ -78,6 +79,7 @@
                 >
                   分配角色
                 </el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -383,6 +385,17 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+.admin-page :deep(.operation-buttons) {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.admin-page :deep(.operation-buttons .el-button) {
+  margin-left: 0;
 }
 
 .reset-tip {

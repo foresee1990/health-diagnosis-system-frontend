@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="message" :class="isUser ? 'message--user' : 'message--ai'">
     <div v-if="!isUser" class="message__avatar">
       <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -6,52 +6,33 @@
         <path d="M14 7v14M7 14h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
       </svg>
     </div>
-
-    <div class="message__body">
-      <!-- 思考过程气泡（流式输出时展开，结束后自动折叠） -->
-      <div
-        v-if="!isUser && message.thinking"
-        class="thinking-block"
-        :class="{ 'thinking-block--collapsed': collapsed }"
-      >
-        <div class="thinking-block__header" @click="collapsed = !collapsed">
-          <span class="thinking-block__label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-            </svg>
+    <div class="message__bubble">
+      <LoadingDots v-if="isLoading" />
+      <template v-else-if="!isUser">
+        <details v-if="showThinking" class="message__thinking">
+          <summary class="message__thinking-summary">
             思考过程
-            <span v-if="!message.thinkingDone" class="thinking-block__streaming">...</span>
-          </span>
-          <span class="thinking-block__toggle">{{ collapsed ? '展开' : '收起' }}</span>
-        </div>
-        <div v-show="!collapsed" class="thinking-block__content">
-          <span class="thinking-text">{{ message.thinking }}</span>
-          <span v-if="!message.thinkingDone" class="cursor-blink">|</span>
-        </div>
-      </div>
-
-      <!-- 主气泡 -->
-      <div class="message__bubble">
-        <LoadingDots v-if="isLoading" />
-        <!-- AI 回答：markdown 渲染 -->
-        <div
-          v-else-if="!isUser"
-          class="message__markdown"
-          v-html="renderedContent"
-        />
-        <!-- 用户消息：纯文本 -->
-        <span v-else class="message__text">{{ message.content }}</span>
-      </div>
+            <span class="message__thinking-hint">{{ thinkingSummary }}</span>
+          </summary>
+          <div class="message__thinking-content" v-html="renderedThinking" />
+        </details>
+        <div v-if="hasAnswer" class="message__markdown" v-html="renderedAnswer" />
+        <div v-else-if="showThinking" class="message__thinking-waiting">正在整理最终回答...</div>
+      </template>
+      <span v-else class="message__text">{{ message.content }}</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { marked } from 'marked'
 import LoadingDots from '@/components/common/LoadingDots.vue'
 
 marked.use({ gfm: true, breaks: true })
+
+const THINK_TAG_REGEX = /<think>([\s\S]*?)<\/think>/gi
+const THINKING_PREVIEW_LIMIT = 80
 
 const props = defineProps({
   message: {
@@ -66,25 +47,58 @@ const props = defineProps({
 
 const isUser = computed(() => props.message.role === 'user')
 
-// thinking 折叠状态：流式输出时展开，结束后自动折叠
-const collapsed = ref(false)
+function extractSegments(message) {
+  const rawContent = typeof message?.content === 'string' ? message.content : ''
+  const explicitThinking = typeof message?.thinking === 'string' ? message.thinking : ''
+  const thinkingParts = []
 
-watch(
-  () => props.message.thinkingDone,
-  (done) => { if (done) collapsed.value = true }
-)
+  const answer = rawContent.replace(THINK_TAG_REGEX, (_, thinkContent) => {
+    if (thinkContent?.trim()) {
+      thinkingParts.push(thinkContent.trim())
+    }
+    return ''
+  }).trim()
 
-const renderedContent = computed(() => {
-  const text = props.message.content
+  if (explicitThinking.trim()) {
+    thinkingParts.unshift(explicitThinking.trim())
+  }
+
+  const mergedThinking = thinkingParts.join('\n\n').trim()
+
+  return {
+    thinking: mergedThinking,
+    answer
+  }
+}
+
+const segments = computed(() => extractSegments(props.message))
+const showThinking = computed(() => Boolean(segments.value.thinking))
+const hasAnswer = computed(() => Boolean(segments.value.answer))
+
+const renderedThinking = computed(() => {
+  if (!segments.value.thinking) return ''
+  return marked.parse(segments.value.thinking)
+})
+
+const renderedAnswer = computed(() => {
+  if (!segments.value.answer) return ''
+  return marked.parse(segments.value.answer)
+})
+
+const thinkingSummary = computed(() => {
+  const text = segments.value.thinking.replace(/\s+/g, ' ').trim()
   if (!text) return ''
-  return marked.parse(text)
+  if (text.length <= THINKING_PREVIEW_LIMIT) {
+    return text
+  }
+  return `${text.slice(0, THINKING_PREVIEW_LIMIT)}...`
 })
 </script>
 
 <style scoped>
 .message {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -97,7 +111,6 @@ const renderedContent = computed(() => {
   width: 28px;
   height: 28px;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .message__avatar svg {
@@ -105,88 +118,8 @@ const renderedContent = computed(() => {
   height: 100%;
 }
 
-.message__body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-width: 65%;
-}
-
-.message--user .message__body {
-  align-items: flex-end;
-}
-
-/* ---- Thinking 气泡 ---- */
-.thinking-block {
-  background: #EBF4FF;
-  border: 1px solid #BFDBFE;
-  border-radius: 10px;
-  font-size: 13px;
-  color: #3B5BA5;
-  overflow: hidden;
-}
-
-.thinking-block__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 12px;
-  cursor: pointer;
-  user-select: none;
-  gap: 8px;
-}
-
-.thinking-block__header:hover {
-  background: #DBEAFE;
-}
-
-.thinking-block__label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 500;
-}
-
-.thinking-block__streaming {
-  color: #60A5FA;
-  font-weight: 600;
-  letter-spacing: 2px;
-}
-
-.thinking-block__toggle {
-  font-size: 12px;
-  color: #6B8FC7;
-  flex-shrink: 0;
-}
-
-.thinking-block__content {
-  padding: 8px 12px 10px;
-  border-top: 1px solid #BFDBFE;
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.6;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.thinking-text {
-  color: #374B7B;
-}
-
-.cursor-blink {
-  display: inline-block;
-  color: #60A5FA;
-  animation: blink 0.8s step-end infinite;
-  margin-left: 1px;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-/* ---- 主气泡 ---- */
 .message__bubble {
+  max-width: 65%;
   padding: 12px 16px;
   border-radius: var(--radius-bubble);
   font-size: 14px;
@@ -211,43 +144,91 @@ const renderedContent = computed(() => {
   white-space: pre-wrap;
 }
 
-/* ---- Markdown 渲染样式 ---- */
-.message__markdown {
-  line-height: 1.7;
+.message__thinking {
+  margin-bottom: 12px;
+  border: 1px solid #dbe4f0;
+  background: #f7fafc;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.message__markdown :deep(p) {
+.message__thinking-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #355070;
+  list-style: none;
+}
+
+.message__thinking-summary::-webkit-details-marker {
+  display: none;
+}
+
+.message__thinking-hint {
+  flex: 1;
+  color: #6b7a90;
+  font-weight: 400;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message__thinking-content {
+  padding: 0 12px 12px;
+  color: #516072;
+  font-size: 13px;
+}
+
+.message__thinking-waiting {
+  color: #6b7a90;
+  font-size: 13px;
+}
+
+.message__markdown :deep(p),
+.message__thinking-content :deep(p) {
   margin: 0 0 8px;
 }
 
-.message__markdown :deep(p:last-child) {
+.message__markdown :deep(p:last-child),
+.message__thinking-content :deep(p:last-child) {
   margin-bottom: 0;
 }
 
-.message__markdown :deep(strong) {
+.message__markdown :deep(strong),
+.message__thinking-content :deep(strong) {
   font-weight: 600;
   color: #1a1a1a;
 }
 
 .message__markdown :deep(ul),
-.message__markdown :deep(ol) {
+.message__markdown :deep(ol),
+.message__thinking-content :deep(ul),
+.message__thinking-content :deep(ol) {
   margin: 6px 0 8px;
   padding-left: 20px;
 }
 
-.message__markdown :deep(li) {
+.message__markdown :deep(li),
+.message__thinking-content :deep(li) {
   margin-bottom: 4px;
 }
 
 .message__markdown :deep(h3),
-.message__markdown :deep(h4) {
+.message__markdown :deep(h4),
+.message__thinking-content :deep(h3),
+.message__thinking-content :deep(h4) {
   font-size: 14px;
   font-weight: 600;
   margin: 10px 0 4px;
 }
 
-.message__markdown :deep(code) {
-  background: #F3F4F6;
+.message__markdown :deep(code),
+.message__thinking-content :deep(code) {
+  background: #f3f4f6;
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 13px;

@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+﻿import { defineStore } from 'pinia'
 import * as consultationService from '@/services/consultationService'
 
 export const useConsultationStore = defineStore('consultation', {
@@ -43,12 +43,10 @@ export const useConsultationStore = defineStore('consultation', {
         role: 'assistant',
         thinking: '',
         content: '',
-        thinkingDone: false,
         createdAt: new Date().toISOString()
       })
       this.aiTyping = true
 
-      // 必须通过数组索引访问，拿到 Vue 响应式代理，直接用原始对象引用修改属性不会触发视图更新
       const idx = this.messages.length - 1
 
       try {
@@ -57,11 +55,10 @@ export const useConsultationStore = defineStore('consultation', {
           content,
           (token) => { this.messages[idx].thinking += token },
           (token) => { this.messages[idx].content += token },
-          () => { this.messages[idx].thinkingDone = true },
+          () => {},
           (riskLevel) => {
             this.currentRiskLevel = riskLevel
             this.aiTyping = false
-            this.messages[idx].thinkingDone = true
           }
         )
       } catch (e) {

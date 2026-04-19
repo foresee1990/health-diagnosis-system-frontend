@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="message-list" ref="listEl">
     <div v-if="messages.length === 0" class="message-list__empty">
       <p>Start the conversation by typing below.</p>
@@ -45,7 +45,7 @@ function scrollToBottom() {
 watch(() => props.messages.length, scrollToBottom)
 watch(() => {
   const last = props.messages[props.messages.length - 1]
-  return last?.content
+  return `${last?.thinking || ''}\n${last?.content || ''}`
 }, scrollToBottom)
 </script>
 
