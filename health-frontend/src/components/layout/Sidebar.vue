@@ -5,6 +5,7 @@
         type="primary"
         class="sidebar__new-btn"
         :icon="Plus"
+        :loading="creating"
         @click="handleNewConsultation"
       >
         New Consultation
@@ -21,11 +22,29 @@
         :class="{ 'sidebar__item--active': item.id === consultationStore.currentId }"
         @click="openConsultation(item.id)"
       >
-        <div class="sidebar__item-title">{{ item.chiefComplaint || 'Consultation #' + item.id }}</div>
-        <div class="sidebar__item-meta">
-          <span class="sidebar__item-status" :class="'status--' + item.status">{{ item.status }}</span>
-          <span class="sidebar__item-date">{{ formatDate(item.createdAt) }}</span>
+        <div class="sidebar__item-main">
+          <div class="sidebar__item-title">{{ item.chiefComplaint || 'Consultation #' + item.id }}</div>
+          <div class="sidebar__item-meta">
+            <span class="sidebar__item-status" :class="'status--' + item.status">{{ item.status }}</span>
+            <span class="sidebar__item-date">{{ formatDate(item.createdAt) }}</span>
+          </div>
         </div>
+
+        <el-dropdown
+          trigger="click"
+          @command="(cmd) => handleMenuCommand(cmd, item)"
+          @click.stop
+        >
+          <span class="sidebar__item-more" @click.stop>
+            <el-icon><MoreFilled /></el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="rename">重命名</el-dropdown-item>
+              <el-dropdown-item command="delete" style="color: #f56c6c">删除</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
 
@@ -45,46 +64,23 @@
       <span>管理后台</span>
     </div>
 
-    <!-- New Consultation Dialog -->
-    <el-dialog
-      v-model="showNewDialog"
-      title="New Consultation"
-      width="420px"
-      :close-on-click-modal="false"
-    >
-      <el-form @submit.prevent="createNew">
-        <el-form-item label="Chief Complaint">
-          <el-input
-            v-model="chiefComplaint"
-            type="textarea"
-            :rows="3"
-            placeholder="Describe your main symptom or concern..."
-            maxlength="200"
-            show-word-limit
-          />
-        </el-form-item>
-      </el-form>
+    <!-- Rename Dialog -->
+    <el-dialog v-model="renameDialog.visible" title="重命名" width="360px" :close-on-click-modal="false">
+      <el-input v-model="renameDialog.value" placeholder="输入新名称" maxlength="50" show-word-limit @keyup.enter="confirmRename" />
       <template #footer>
-        <el-button @click="showNewDialog = false">Cancel</el-button>
-        <el-button
-          type="primary"
-          :loading="creating"
-          :disabled="!chiefComplaint.trim()"
-          @click="createNew"
-        >
-          Start
-        </el-button>
+        <el-button @click="renameDialog.visible = false">取消</el-button>
+        <el-button type="primary" :disabled="!renameDialog.value.trim()" @click="confirmRename">确认</el-button>
       </template>
     </el-dialog>
   </aside>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConsultationStore } from '@/stores/consultation'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, Setting, Files } from '@element-plus/icons-vue'
+import { Plus, Setting, Files, MoreFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getHealthProfile } from '@/services/authService'
 
@@ -92,9 +88,9 @@ const router = useRouter()
 const consultationStore = useConsultationStore()
 const authStore = useAuthStore()
 
-const showNewDialog = ref(false)
-const chiefComplaint = ref('')
 const creating = ref(false)
+
+const renameDialog = reactive({ visible: false, id: null, value: '' })
 
 async function handleNewConsultation() {
   try {
@@ -103,33 +99,21 @@ async function handleNewConsultation() {
       await ElMessageBox.confirm(
         '填写健康档案后，AI 可以提供更个性化的问诊建议。是否现在前往填写？',
         '完善健康档案',
-        {
-          confirmButtonText: '去填写',
-          cancelButtonText: '跳过',
-          type: 'info',
-          distinguishCancelAndClose: true
-        }
+        { confirmButtonText: '去填写', cancelButtonText: '跳过', type: 'info', distinguishCancelAndClose: true }
       )
       router.push('/profile')
       return
     }
   } catch (action) {
-    // "跳过" (cancel) or error — proceed to open dialog
     if (action === 'close') return
   }
-  showNewDialog.value = true
-}
 
-async function createNew() {
-  if (!chiefComplaint.value.trim()) return
   creating.value = true
   try {
-    const id = await consultationStore.createConsultation(chiefComplaint.value.trim())
-    showNewDialog.value = false
-    chiefComplaint.value = ''
+    const id = await consultationStore.createConsultation('')
     router.push(`/chat/${id}`)
   } catch {
-    ElMessage.error('Failed to create consultation.')
+    ElMessage.error('创建失败，请重试。')
   } finally {
     creating.value = false
   }
@@ -139,10 +123,44 @@ function openConsultation(id) {
   router.push(`/chat/${id}`)
 }
 
+async function handleMenuCommand(cmd, item) {
+  if (cmd === 'rename') {
+    renameDialog.id = item.id
+    renameDialog.value = item.chiefComplaint || ''
+    renameDialog.visible = true
+  } else if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm('确定删除该问诊记录吗？此操作不可恢复。', '删除确认', {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      })
+      await consultationStore.deleteConsultation(item.id)
+      if (consultationStore.currentId === null) router.push('/chat')
+      ElMessage.success('已删除')
+    } catch {
+      // 取消，无需处理
+    }
+  }
+}
+
+async function confirmRename() {
+  const title = renameDialog.value.trim()
+  if (!title) return
+  try {
+    await consultationStore.renameConsultation(renameDialog.id, title)
+    renameDialog.visible = false
+    ElMessage.success('已重命名')
+  } catch {
+    ElMessage.error('重命名失败')
+  }
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 </script>
 
@@ -182,7 +200,10 @@ function formatDate(dateStr) {
 }
 
 .sidebar__item {
-  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px 10px 12px;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
@@ -199,6 +220,11 @@ function formatDate(dateStr) {
 
 .sidebar__item--active .sidebar__item-title {
   color: var(--color-primary);
+}
+
+.sidebar__item-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .sidebar__item-title {
@@ -238,6 +264,28 @@ function formatDate(dateStr) {
 .sidebar__item-date {
   font-size: 11px;
   color: var(--color-text-secondary);
+}
+
+.sidebar__item-more {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.sidebar__item:hover .sidebar__item-more {
+  opacity: 1;
+}
+
+.sidebar__item-more:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
 }
 
 .sidebar__empty {

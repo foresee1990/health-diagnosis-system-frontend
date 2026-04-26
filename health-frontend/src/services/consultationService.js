@@ -17,6 +17,14 @@ export function completeConsultation(consultationId) {
   return http.patch(`/consultations/${consultationId}/status`)
 }
 
+export function deleteConsultation(consultationId) {
+  return http.delete(`/consultations/${consultationId}`)
+}
+
+export function renameConsultation(consultationId, title) {
+  return http.patch(`/consultations/${consultationId}/title`, { title })
+}
+
 export async function sendMessageStream(consultationId, content, onThinkingToken, onAnswerToken, onThinkDone, onDone) {
   const token = useAuthStore().token
 

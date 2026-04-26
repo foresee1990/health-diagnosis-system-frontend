@@ -73,6 +73,23 @@ export const useConsultationStore = defineStore('consultation', {
       this.currentStatus = 'completed'
       const item = this.list.find(c => c.id === this.currentId)
       if (item) item.status = 'completed'
+    },
+
+    async deleteConsultation(id) {
+      await consultationService.deleteConsultation(id)
+      this.list = this.list.filter(c => c.id !== id)
+      if (this.currentId === id) {
+        this.currentId = null
+        this.messages = []
+        this.currentStatus = null
+        this.currentRiskLevel = null
+      }
+    },
+
+    async renameConsultation(id, title) {
+      await consultationService.renameConsultation(id, title)
+      const item = this.list.find(c => c.id === id)
+      if (item) item.chiefComplaint = title
     }
   }
 })
