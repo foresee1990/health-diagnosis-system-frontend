@@ -7,8 +7,8 @@
           <path d="M20 10v20M10 20h20" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
         </svg>
       </div>
-      <h1 class="auth-card__title">Create Account</h1>
-      <p class="auth-card__subtitle">Join Health AI Consultation</p>
+      <h1 class="auth-card__title">创建账户</h1>
+      <p class="auth-card__subtitle">加入健康 AI 问诊</p>
 
       <el-form
         ref="formRef"
@@ -18,16 +18,16 @@
         class="auth-form"
         @submit.prevent="handleRegister"
       >
-        <el-form-item label="Username" prop="username">
+        <el-form-item label="用户名" prop="username">
           <el-input
             v-model="form.username"
-            placeholder="3-50 characters"
+            placeholder="3-50 个字符"
             size="large"
             :prefix-icon="User"
           />
         </el-form-item>
 
-        <el-form-item label="Email (optional)" prop="email">
+        <el-form-item label="邮箱（选填）" prop="email">
           <el-input
             v-model="form.email"
             placeholder="your@email.com"
@@ -36,11 +36,11 @@
           />
         </el-form-item>
 
-        <el-form-item label="Password" prop="password">
+        <el-form-item label="密码" prop="password">
           <el-input
             v-model="form.password"
             type="password"
-            placeholder="6-20 characters"
+            placeholder="6-20 个字符"
             size="large"
             :prefix-icon="Lock"
             show-password
@@ -54,13 +54,13 @@
           :loading="loading"
           @click="handleRegister"
         >
-          Register
+          注册
         </el-button>
       </el-form>
 
       <p class="auth-card__footer">
-        Already have an account?
-        <RouterLink to="/login">Sign In</RouterLink>
+        已有账户？
+        <RouterLink to="/login">立即登录</RouterLink>
       </p>
     </div>
   </div>
@@ -81,15 +81,15 @@ const form = ref({ username: '', email: '', password: '' })
 
 const rules = {
   username: [
-    { required: true, message: 'Username is required', trigger: 'blur' },
-    { min: 3, max: 50, message: '3-50 characters', trigger: 'blur' }
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 50, message: '用户名长度为 3-50 个字符', trigger: 'blur' }
   ],
   password: [
-    { required: true, message: 'Password is required', trigger: 'blur' },
-    { min: 6, max: 20, message: '6-20 characters', trigger: 'blur' }
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 20, message: '密码长度为 6-20 个字符', trigger: 'blur' }
   ],
   email: [
-    { type: 'email', message: 'Invalid email format', trigger: 'blur' }
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
   ]
 }
 
@@ -100,10 +100,10 @@ async function handleRegister() {
   loading.value = true
   try {
     await register(form.value.username, form.value.password, form.value.email || undefined)
-    ElMessage.success('Registration successful! Please sign in.')
+    ElMessage.success('注册成功！请登录。')
     router.push('/login')
   } catch (e) {
-    const msg = e.response?.data?.message || 'Registration failed. Please try again.'
+    const msg = e.response?.data?.message || '注册失败，请重试。'
     ElMessage.error(msg)
   } finally {
     loading.value = false

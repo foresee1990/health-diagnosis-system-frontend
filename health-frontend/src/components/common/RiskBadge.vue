@@ -32,10 +32,10 @@ const tagType = computed(() => {
 
 const label = computed(() => {
   const map = {
-    low: 'Low Risk',
-    medium: 'Medium Risk',
-    high: 'High Risk',
-    urgent: 'Urgent'
+    low: '低风险',
+    medium: '中等风险',
+    high: '高风险',
+    urgent: '紧急'
   }
   return map[props.level] || props.level
 })

@@ -31,8 +31,8 @@
               <path d="M32 16v32M16 32h32" stroke="#2F80ED" stroke-width="5" stroke-linecap="round"/>
             </svg>
           </div>
-          <h2>Welcome to Health AI Consultation</h2>
-          <p>Select an existing consultation or start a new one from the sidebar.</p>
+          <h2>欢迎使用健康 AI 问诊</h2>
+          <p>请从左侧边栏选择历史问诊，或新建一次问诊。</p>
         </div>
       </main>
     </div>
@@ -55,7 +55,7 @@ const consultationStore = useConsultationStore()
 
 const currentTitle = computed(() => {
   const item = consultationStore.list.find(c => c.id === consultationStore.currentId)
-  return item?.chiefComplaint || 'AI Health Consultation'
+  return item?.chiefComplaint || 'AI 健康问诊'
 })
 
 onMounted(async () => {
@@ -81,16 +81,16 @@ async function handleSend(content) {
   try {
     await consultationStore.sendMessage(content)
   } catch {
-    ElMessage.error('Failed to send message.')
+    ElMessage.error('发送消息失败。')
   }
 }
 
 async function handleComplete() {
   try {
     await consultationStore.completeConsultation()
-    ElMessage.success('Consultation ended.')
+    ElMessage.success('问诊已结束。')
   } catch {
-    ElMessage.error('Failed to end consultation.')
+    ElMessage.error('结束问诊失败。')
   }
 }
 </script>

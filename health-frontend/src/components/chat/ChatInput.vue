@@ -5,7 +5,7 @@
       type="textarea"
       :rows="1"
       :autosize="{ minRows: 1, maxRows: 4 }"
-      placeholder="Type your message..."
+      placeholder="输入您的消息..."
       :disabled="disabled"
       class="chat-input__field"
       @keydown.enter.exact.prevent="submit"

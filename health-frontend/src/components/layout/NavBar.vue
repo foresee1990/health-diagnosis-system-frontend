@@ -5,7 +5,7 @@
         <rect width="32" height="32" rx="8" fill="#2F80ED"/>
         <path d="M16 8v16M8 16h16" stroke="white" stroke-width="3" stroke-linecap="round"/>
       </svg>
-      <span class="navbar__title">Health AI Consultation</span>
+      <span class="navbar__title">健康 AI 问诊</span>
     </div>
 
     <div class="navbar__right">

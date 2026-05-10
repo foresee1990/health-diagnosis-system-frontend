@@ -20,8 +20,8 @@
               @clear="loadUsers"
             />
             <el-select v-model="userSearch.status" placeholder="状态筛选" clearable style="width: 130px" @change="loadUsers">
-              <el-option label="Active" value="ACTIVE" />
-              <el-option label="Banned" value="BANNED" />
+              <el-option label="正常" value="ACTIVE" />
+              <el-option label="禁用" value="BANNED" />
             </el-select>
             <el-button type="primary" @click="loadUsers">查询</el-button>
           </div>
@@ -37,7 +37,7 @@
             </el-table-column>
             <el-table-column prop="status" label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'danger'" size="small">{{ row.status }}</el-tag>
+                <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'danger'" size="small">{{ row.status === 'ACTIVE' ? '正常' : row.status === 'BANNED' ? '禁用' : row.status }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="createdAt" label="注册时间" min-width="150">
@@ -131,7 +131,7 @@
         <el-table-column prop="chiefComplaint" label="主诉" min-width="140" show-overflow-tooltip />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'completed' ? 'success' : 'warning'" size="small">{{ row.status }}</el-tag>
+            <el-tag :type="row.status === 'completed' ? 'success' : 'warning'" size="small">{{ row.status === 'completed' ? '已完成' : row.status === 'ongoing' ? '进行中' : row.status }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="riskLevel" label="风险等级" width="100">

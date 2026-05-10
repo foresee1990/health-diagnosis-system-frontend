@@ -13,7 +13,7 @@
         :loading="completing"
         @click="handleComplete"
       >
-        End Consultation
+        结束问诊
       </el-button>
 
       <el-button
@@ -24,7 +24,7 @@
         :loading="generating"
         @click="handleGenerate"
       >
-        Generate Report
+        生成报告
       </el-button>
 
       <el-button
@@ -35,7 +35,7 @@
         :loading="downloading"
         @click="handleDownload"
       >
-        Download Report
+        下载报告
       </el-button>
     </div>
   </div>
@@ -48,7 +48,7 @@ import RiskBadge from '@/components/common/RiskBadge.vue'
 import { generateReport, getReport, downloadReport } from '@/services/reportService'
 
 const props = defineProps({
-  title: { type: String, default: 'AI Health Consultation' },
+  title: { type: String, default: 'AI 健康问诊' },
   status: { type: String, default: null },
   riskLevel: { type: String, default: null },
   consultationId: { type: Number, default: null }
@@ -87,9 +87,9 @@ watch(() => props.status, async (status) => {
 
 async function handleComplete() {
   try {
-    await ElMessageBox.confirm('End this consultation?', 'Confirm', {
-      confirmButtonText: 'End',
-      cancelButtonText: 'Cancel',
+    await ElMessageBox.confirm('确定结束本次问诊？', '确认', {
+      confirmButtonText: '结束',
+      cancelButtonText: '取消',
       type: 'warning'
     })
     completing.value = true
@@ -106,9 +106,9 @@ async function handleGenerate() {
   try {
     const res = await generateReport(props.consultationId)
     reportInfo.value = res.data
-    ElMessage.success('Report generated successfully.')
+    ElMessage.success('报告生成成功。')
   } catch {
-    ElMessage.error('Failed to generate report.')
+    ElMessage.error('报告生成失败。')
   } finally {
     generating.value = false
   }
@@ -119,7 +119,7 @@ async function handleDownload() {
   try {
     await downloadReport(reportInfo.value.reportId)
   } catch {
-    ElMessage.error('Failed to download report.')
+    ElMessage.error('报告下载失败。')
   } finally {
     downloading.value = false
   }

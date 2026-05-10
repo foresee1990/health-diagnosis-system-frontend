@@ -7,8 +7,8 @@
           <path d="M20 10v20M10 20h20" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
         </svg>
       </div>
-      <h1 class="auth-card__title">Health AI Consultation</h1>
-      <p class="auth-card__subtitle">Sign in to your account</p>
+      <h1 class="auth-card__title">健康 AI 问诊</h1>
+      <p class="auth-card__subtitle">登录您的账户</p>
 
       <el-form
         ref="formRef"
@@ -18,20 +18,20 @@
         class="auth-form"
         @submit.prevent="handleLogin"
       >
-        <el-form-item label="Username" prop="username">
+        <el-form-item label="用户名" prop="username">
           <el-input
             v-model="form.username"
-            placeholder="Enter username"
+            placeholder="请输入用户名"
             size="large"
             :prefix-icon="User"
           />
         </el-form-item>
 
-        <el-form-item label="Password" prop="password">
+        <el-form-item label="密码" prop="password">
           <el-input
             v-model="form.password"
             type="password"
-            placeholder="Enter password"
+            placeholder="请输入密码"
             size="large"
             :prefix-icon="Lock"
             show-password
@@ -46,13 +46,13 @@
           :loading="loading"
           @click="handleLogin"
         >
-          Sign In
+          登录
         </el-button>
       </el-form>
 
       <p class="auth-card__footer">
-        Don't have an account?
-        <RouterLink to="/register">Register</RouterLink>
+        还没有账户？
+        <RouterLink to="/register">立即注册</RouterLink>
       </p>
     </div>
   </div>
@@ -73,8 +73,8 @@ const loading = ref(false)
 const form = ref({ username: '', password: '' })
 
 const rules = {
-  username: [{ required: true, message: 'Please enter username', trigger: 'blur' }],
-  password: [{ required: true, message: 'Please enter password', trigger: 'blur' }]
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
 async function handleLogin() {
@@ -86,7 +86,7 @@ async function handleLogin() {
     await authStore.login(form.value.username, form.value.password)
     router.push('/chat')
   } catch (e) {
-    const msg = e.response?.data?.message || 'Login failed. Please check your credentials.'
+    const msg = e.response?.data?.message || '登录失败，请检查您的账号和密码。'
     ElMessage.error(msg)
   } finally {
     loading.value = false

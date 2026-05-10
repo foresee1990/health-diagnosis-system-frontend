@@ -8,11 +8,11 @@
         :loading="creating"
         @click="handleNewConsultation"
       >
-        New Consultation
+        新建问诊
       </el-button>
     </div>
 
-    <div class="sidebar__section-title">Recent</div>
+    <div class="sidebar__section-title">最近</div>
 
     <div class="sidebar__list" v-if="consultationStore.list.length">
       <div
@@ -23,9 +23,9 @@
         @click="openConsultation(item.id)"
       >
         <div class="sidebar__item-main">
-          <div class="sidebar__item-title">{{ item.chiefComplaint || 'Consultation #' + item.id }}</div>
+          <div class="sidebar__item-title">{{ item.chiefComplaint || '问诊 #' + item.id }}</div>
           <div class="sidebar__item-meta">
-            <span class="sidebar__item-status" :class="'status--' + item.status">{{ item.status }}</span>
+            <span class="sidebar__item-status" :class="'status--' + item.status">{{ item.status === 'ongoing' ? '进行中' : item.status === 'completed' ? '已完成' : item.status }}</span>
             <span class="sidebar__item-date">{{ formatDate(item.createdAt) }}</span>
           </div>
         </div>
@@ -49,7 +49,7 @@
     </div>
 
     <div class="sidebar__empty" v-else>
-      <p>No consultations yet.</p>
+      <p>暂无问诊记录。</p>
     </div>
 
     <!-- Knowledge entry — visible to KNOWLEDGE_ENGINEER and ADMIN -->
